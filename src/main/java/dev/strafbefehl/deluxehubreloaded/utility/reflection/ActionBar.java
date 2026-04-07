@@ -22,10 +22,10 @@
 package dev.strafbefehl.deluxehubreloaded.utility.reflection;
 
 import dev.strafbefehl.deluxehubreloaded.DeluxeHubPlugin;
+import dev.strafbefehl.deluxehubreloaded.utility.FoliaScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -49,8 +49,10 @@ import java.util.concurrent.Callable;
  * Messages are not colorized by default.
  * <p>
  * Action bars are text messages that appear above
- * the player's <a href="https://minecraft.gamepedia.com/Heads-up_display">hotbar</a>
- * Note that this is different than the text appeared when switching between items.
+ * the player's
+ * <a href="https://minecraft.gamepedia.com/Heads-up_display">hotbar</a>
+ * Note that this is different than the text appeared when switching between
+ * items.
  * Those messages show the item's name and are different from action bars.
  * The only natural way of displaying action bars is when mounting.
  *
@@ -76,7 +78,8 @@ public class ActionBar {
 
 		try {
 			// Game Info Message Type
-			Class<?> chatMessageTypeClass = Class.forName("net.minecraft.server." + ReflectionUtils.VERSION + ".ChatMessageType");
+			Class<?> chatMessageTypeClass = Class
+					.forName("net.minecraft.server." + ReflectionUtils.VERSION + ".ChatMessageType");
 			for (Object obj : chatMessageTypeClass.getEnumConstants()) {
 				if (obj.toString().equals("GAME_INFO")) {
 					chatMsgType = obj;
@@ -89,7 +92,8 @@ public class ActionBar {
 			chatComp = lookup.findConstructor(chatComponentTextClass, MethodType.methodType(void.class, String.class));
 
 			// Packet Constructor
-			packet = lookup.findConstructor(packetPlayOutChatClass, MethodType.methodType(void.class, iChatBaseComponentClass, chatMessageTypeClass));
+			packet = lookup.findConstructor(packetPlayOutChatClass,
+					MethodType.methodType(void.class, iChatBaseComponentClass, chatMessageTypeClass));
 		} catch (NoSuchMethodException | IllegalAccessException | ClassNotFoundException ignored) {
 			try {
 				// Game Info Message Type
@@ -97,10 +101,12 @@ public class ActionBar {
 
 				// JSON Message Builder
 				Class<?> chatComponentTextClass = ReflectionUtils.getNMSClass("ChatComponentText");
-				chatComp = lookup.findConstructor(chatComponentTextClass, MethodType.methodType(void.class, String.class));
+				chatComp = lookup.findConstructor(chatComponentTextClass,
+						MethodType.methodType(void.class, String.class));
 
 				// Packet Constructor
-				packet = lookup.findConstructor(packetPlayOutChatClass, MethodType.methodType(void.class, iChatBaseComponentClass, byte.class));
+				packet = lookup.findConstructor(packetPlayOutChatClass,
+						MethodType.methodType(void.class, iChatBaseComponentClass, byte.class));
 			} catch (NoSuchMethodException | IllegalAccessException ex) {
 				ex.printStackTrace();
 			}
@@ -140,7 +146,8 @@ public class ActionBar {
 	 * @since 1.0.0
 	 */
 	public static void sendAllActionBar(String message) {
-		for (Player player : Bukkit.getOnlinePlayers()) sendActionBar(player, message);
+		for (Player player : Bukkit.getOnlinePlayers())
+			sendActionBar(player, message);
 	}
 
 	/**
@@ -157,21 +164,20 @@ public class ActionBar {
 	 * @since 1.0.0
 	 */
 	public static void sendActionBarWhile(Player player, String message, Callable<Boolean> callable) {
-		new BukkitRunnable() {
-			@Override
-			public void run() {
-				try {
-					if (!callable.call()) {
-						cancel();
-						return;
+		final FoliaScheduler.TaskHandle[] task = new FoliaScheduler.TaskHandle[1];
+		task[0] = FoliaScheduler.runTimerAtEntity(player, PLUGIN, () -> {
+			try {
+				if (!callable.call()) {
+					if (task[0] != null) {
+						task[0].cancel();
 					}
-				} catch (Exception ex) {
-					ex.printStackTrace();
+					return;
 				}
-				sendActionBar(player, message);
+			} catch (Exception ex) {
+				ex.printStackTrace();
 			}
-			// Re-sends the messages every 2 seconds so it doesn't go away from the player's screen.
-		}.runTaskTimerAsynchronously(PLUGIN, 0L, 40L);
+			sendActionBar(player, message);
+		}, 0L, 40L);
 	}
 
 	/**
@@ -187,21 +193,20 @@ public class ActionBar {
 	 * @since 1.0.0
 	 */
 	public static void sendActionBarWhile(Player player, Callable<String> message, Callable<Boolean> callable) {
-		new BukkitRunnable() {
-			@Override
-			public void run() {
-				try {
-					if (!callable.call()) {
-						cancel();
-						return;
+		final FoliaScheduler.TaskHandle[] task = new FoliaScheduler.TaskHandle[1];
+		task[0] = FoliaScheduler.runTimerAtEntity(player, PLUGIN, () -> {
+			try {
+				if (!callable.call()) {
+					if (task[0] != null) {
+						task[0].cancel();
 					}
-					sendActionBar(player, message.call());
-				} catch (Exception ex) {
-					ex.printStackTrace();
+					return;
 				}
+				sendActionBar(player, message.call());
+			} catch (Exception ex) {
+				ex.printStackTrace();
 			}
-			// Re-sends the messages every 2 seconds so it doesn't go away from the player's screen.
-		}.runTaskTimerAsynchronously(PLUGIN, 0L, 40L);
+		}, 0L, 40L);
 	}
 
 	/**
@@ -214,18 +219,17 @@ public class ActionBar {
 	 * @since 1.0.0
 	 */
 	public static void sendActionBar(Player player, String message, long duration) {
-		if (duration < 1) return;
+		if (duration < 1)
+			return;
 
-		new BukkitRunnable() {
-			long repeater = duration;
-
-			@Override
-			public void run() {
-				sendActionBar(player, message);
-				repeater -= 40L;
-				if (repeater - 40L < -20L) cancel();
+		final long[] repeater = { duration };
+		final FoliaScheduler.TaskHandle[] task = new FoliaScheduler.TaskHandle[1];
+		task[0] = FoliaScheduler.runTimerAtEntity(player, PLUGIN, () -> {
+			sendActionBar(player, message);
+			repeater[0] -= 40L;
+			if (repeater[0] - 40L < -20L && task[0] != null) {
+				task[0].cancel();
 			}
-			// Re-sends the messages every 2 seconds so it doesn't go away from the player's screen.
-		}.runTaskTimerAsynchronously(PLUGIN, 0L, 40L);
+		}, 0L, 40L);
 	}
 }

@@ -14,6 +14,7 @@ import dev.strafbefehl.deluxehubreloaded.inventory.InventoryManager;
 import dev.strafbefehl.deluxehubreloaded.module.ModuleManager;
 import dev.strafbefehl.deluxehubreloaded.module.ModuleType;
 import dev.strafbefehl.deluxehubreloaded.module.modules.hologram.HologramManager;
+import dev.strafbefehl.deluxehubreloaded.utility.FoliaScheduler;
 import dev.strafbefehl.deluxehubreloaded.utility.NamespacedKeys;
 import dev.strafbefehl.deluxehubreloaded.utility.UpdateChecker;
 import org.bstats.bukkit.MetricsLite;
@@ -84,7 +85,8 @@ public class DeluxeHubPlugin extends JavaPlugin {
 		configManager.loadFiles(this);
 
 		// If there were any configuration errors we should not continue
-		if (!getServer().getPluginManager().isPluginEnabled(this)) return;
+		if (!getServer().getPluginManager().isPluginEnabled(this))
+			return;
 
 		// Command manager
 		commandManager = new CommandManager(this);
@@ -95,7 +97,8 @@ public class DeluxeHubPlugin extends JavaPlugin {
 
 		// Inventory (GUI) manager
 		inventoryManager = new InventoryManager();
-		if (!hooksManager.isHookEnabled("HEAD_DATABASE")) inventoryManager.onEnable(this);
+		if (!hooksManager.isHookEnabled("HEAD_DATABASE"))
+			inventoryManager.onEnable(this);
 
 		// Core plugin modules
 		moduleManager = new ModuleManager();
@@ -104,7 +107,7 @@ public class DeluxeHubPlugin extends JavaPlugin {
 		// Action system
 		actionManager = new ActionManager(this);
 
-		//BuildMode manager
+		// BuildMode manager
 		BuildMode.getInstance();
 
 		// Load update checker (if enabled)
@@ -133,14 +136,14 @@ public class DeluxeHubPlugin extends JavaPlugin {
 	}
 
 	public void onDisable() {
-		Bukkit.getScheduler().cancelTasks(this);
+		FoliaScheduler.cancelTasks(this);
 		moduleManager.unloadModules();
 		inventoryManager.onDisable();
-		//configManager.saveFiles();
+		// configManager.saveFiles();
 	}
 
 	public void reload() {
-		Bukkit.getScheduler().cancelTasks(this);
+		FoliaScheduler.cancelTasks(this);
 		HandlerList.unregisterAll(this);
 
 		configManager.reloadFiles();
@@ -156,7 +159,8 @@ public class DeluxeHubPlugin extends JavaPlugin {
 	}
 
 	@Override
-	public boolean onCommand(@NotNull CommandSender sender, org.bukkit.command.Command cmd, @NotNull String commandLabel, String[] args) {
+	public boolean onCommand(@NotNull CommandSender sender, org.bukkit.command.Command cmd,
+			@NotNull String commandLabel, String[] args) {
 		try {
 			getCommandManager().execute(cmd.getName(), args, sender);
 		} catch (CommandPermissionsException e) {

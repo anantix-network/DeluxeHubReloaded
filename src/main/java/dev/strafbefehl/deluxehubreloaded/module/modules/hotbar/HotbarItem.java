@@ -2,6 +2,7 @@ package dev.strafbefehl.deluxehubreloaded.module.modules.hotbar;
 
 import dev.strafbefehl.deluxehubreloaded.DeluxeHubPlugin;
 import dev.strafbefehl.deluxehubreloaded.module.modules.world.BuildMode;
+import dev.strafbefehl.deluxehubreloaded.utility.FoliaScheduler;
 import dev.strafbefehl.deluxehubreloaded.utility.ItemStackBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -39,7 +40,8 @@ public abstract class HotbarItem implements Listener {
 
 		ItemMeta meta = item.getItemMeta();
 		if (meta != null) {
-			meta.getPersistentDataContainer().set(new NamespacedKey(getPlugin(), "hotbarItem"), PersistentDataType.STRING, key);
+			meta.getPersistentDataContainer().set(new NamespacedKey(getPlugin(), "hotbarItem"),
+					PersistentDataType.STRING, key);
 			item.setItemMeta(meta);
 		}
 		this.item = item;
@@ -88,7 +90,8 @@ public abstract class HotbarItem implements Listener {
 	}
 
 	public void giveItem(Player player) {
-		if (permission != null && !player.hasPermission(permission)) return;
+		if (permission != null && !player.hasPermission(permission))
+			return;
 
 		ItemStack newItem = item.clone();
 		if (getConfigurationSection() != null && getConfigurationSection().contains("username")) {
@@ -101,11 +104,13 @@ public abstract class HotbarItem implements Listener {
 	public void removeItem(Player player) {
 		PlayerInventory inventory = player.getInventory();
 		ItemStack item = inventory.getItem(slot);
-		if (item == null) return;
+		if (item == null)
+			return;
 
 		ItemMeta meta = item.getItemMeta();
 		if (meta != null) {
-			String hotbarItem = meta.getPersistentDataContainer().get(new NamespacedKey(getPlugin(), "hotbarItem"), PersistentDataType.STRING);
+			String hotbarItem = meta.getPersistentDataContainer().get(new NamespacedKey(getPlugin(), "hotbarItem"),
+					PersistentDataType.STRING);
 			if (hotbarItem != null && hotbarItem.equals(key)) {
 				inventory.remove(Objects.requireNonNull(inventory.getItem(slot)));
 			}
@@ -114,18 +119,23 @@ public abstract class HotbarItem implements Listener {
 
 	@EventHandler
 	public void onInventoryClick(InventoryClickEvent event) {
-		if (!allowMovement) return;
-		if (BuildMode.getInstance().isPresent(event.getWhoClicked().getUniqueId())) return;
+		if (!allowMovement)
+			return;
+		if (BuildMode.getInstance().isPresent(event.getWhoClicked().getUniqueId()))
+			return;
 
 		Player player = (Player) event.getWhoClicked();
-		if (getHotbarManager().inDisabledWorld(player.getLocation())) return;
+		if (getHotbarManager().inDisabledWorld(player.getLocation()))
+			return;
 
 		ItemStack clicked = event.getCurrentItem();
-		if (clicked == null || clicked.getType() == Material.AIR) return;
+		if (clicked == null || clicked.getType() == Material.AIR)
+			return;
 
 		ItemMeta meta = clicked.getItemMeta();
 		if (meta != null) {
-			String hotbarItem = meta.getPersistentDataContainer().get(new NamespacedKey(getPlugin(), "hotbarItem"), PersistentDataType.STRING);
+			String hotbarItem = meta.getPersistentDataContainer().get(new NamespacedKey(getPlugin(), "hotbarItem"),
+					PersistentDataType.STRING);
 			if (hotbarItem != null && event.getSlot() == slot && hotbarItem.equals(key))
 				event.setCancelled(true);
 		}
@@ -133,17 +143,23 @@ public abstract class HotbarItem implements Listener {
 
 	@EventHandler
 	public void hotbarItemInteract(PlayerInteractEvent event) {
-		if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
-		if (event.getHand() != EquipmentSlot.HAND) return;
+		if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK)
+			return;
+		if (event.getHand() != EquipmentSlot.HAND)
+			return;
 
 		Player player = event.getPlayer();
 		ItemStack item = player.getItemInHand();
-		if (item.getType() == Material.AIR) return;
+		if (item.getType() == Material.AIR)
+			return;
 
 		ItemMeta meta = item.getItemMeta();
 		if (meta != null) {
-			String hotbarItem = meta.getPersistentDataContainer().get(new NamespacedKey(getPlugin(), "hotbarItem"), PersistentDataType.STRING);
-			if (hotbarItem != null && getHotbarManager().inDisabledWorld(player.getLocation()) && hotbarItem.equals(key)) return;
+			String hotbarItem = meta.getPersistentDataContainer().get(new NamespacedKey(getPlugin(), "hotbarItem"),
+					PersistentDataType.STRING);
+			if (hotbarItem != null && getHotbarManager().inDisabledWorld(player.getLocation())
+					&& hotbarItem.equals(key))
+				return;
 			else if (hotbarItem != null && hotbarItem.equals(key)) {
 				onInteract(player);
 			}
@@ -153,19 +169,21 @@ public abstract class HotbarItem implements Listener {
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void hotbarPlayerJoin(PlayerJoinEvent event) {
 		Player player = event.getPlayer();
-		if (!getHotbarManager().inDisabledWorld(player.getLocation())) giveItem(player);
+		if (!getHotbarManager().inDisabledWorld(player.getLocation()))
+			giveItem(player);
 	}
 
 	@EventHandler
 	public void hotbarPlayerQuit(PlayerQuitEvent event) {
 		Player player = event.getPlayer();
-		if (!getHotbarManager().inDisabledWorld(player.getLocation())) removeItem(player);
+		if (!getHotbarManager().inDisabledWorld(player.getLocation()))
+			removeItem(player);
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void hotbarWorldChange(PlayerChangedWorldEvent event) {
 		Player player = event.getPlayer();
-		Bukkit.getScheduler().scheduleSyncDelayedTask(getPlugin(), () -> {
+		FoliaScheduler.runLaterAtEntity(player, getPlugin(), () -> {
 			if (getHotbarManager().inDisabledWorld(player.getLocation())) {
 				removeItem(player);
 			} else {
@@ -177,8 +195,10 @@ public abstract class HotbarItem implements Listener {
 	@EventHandler
 	public void hotbarPlayerRespawn(PlayerRespawnEvent event) {
 		Player player = event.getPlayer();
-		if (BuildMode.getInstance().isPresent(player.getUniqueId())) return;
-		if (!getHotbarManager().inDisabledWorld(player.getLocation())) giveItem(player);
+		if (BuildMode.getInstance().isPresent(player.getUniqueId()))
+			return;
+		if (!getHotbarManager().inDisabledWorld(player.getLocation()))
+			giveItem(player);
 		player.setAllowFlight(true);
 	}
 

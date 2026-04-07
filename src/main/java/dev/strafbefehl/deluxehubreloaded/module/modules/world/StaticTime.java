@@ -4,9 +4,9 @@ import dev.strafbefehl.deluxehubreloaded.DeluxeHubPlugin;
 import dev.strafbefehl.deluxehubreloaded.config.ConfigType;
 import dev.strafbefehl.deluxehubreloaded.module.Module;
 import dev.strafbefehl.deluxehubreloaded.module.ModuleType;
+import dev.strafbefehl.deluxehubreloaded.utility.FoliaScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.scheduler.BukkitRunnable;
 
 public class StaticTime extends Module {
 	private int _time;
@@ -24,15 +24,12 @@ public class StaticTime extends Module {
 
 	private void runScheduler() {
 		final DeluxeHubPlugin plugin = DeluxeHubPlugin.getPlugin(DeluxeHubPlugin.class);
-		new BukkitRunnable() {
-			@Override
-			public void run() {
-				Bukkit.getWorlds().forEach(world -> {
-					if (plugin.getModuleManager().getDisabledWorlds().contains(world.getName())) return;
-					if (world.getTime() != _time) world.setTime(_time);
-				});
-			}
-		}.runTaskTimer(plugin, 2L, 2L);
+		FoliaScheduler.runTimer(plugin, () -> Bukkit.getWorlds().forEach(world -> {
+			if (plugin.getModuleManager().getDisabledWorlds().contains(world.getName()))
+				return;
+			if (world.getTime() != _time)
+				world.setTime(_time);
+		}), 2L, 2L);
 	}
 
 	@Override

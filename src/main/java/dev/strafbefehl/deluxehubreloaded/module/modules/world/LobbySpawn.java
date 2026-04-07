@@ -4,7 +4,7 @@ import dev.strafbefehl.deluxehubreloaded.DeluxeHubPlugin;
 import dev.strafbefehl.deluxehubreloaded.config.ConfigType;
 import dev.strafbefehl.deluxehubreloaded.module.Module;
 import dev.strafbefehl.deluxehubreloaded.module.ModuleType;
-import org.bukkit.Bukkit;
+import dev.strafbefehl.deluxehubreloaded.utility.FoliaScheduler;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -24,9 +24,10 @@ public class LobbySpawn extends Module {
 
 	@Override
 	public void onEnable() {
-		Bukkit.getScheduler().runTask(getPlugin(), () -> {
+		FoliaScheduler.run(getPlugin(), () -> {
 			FileConfiguration config = getConfig(ConfigType.DATA);
-			if (config.contains("spawn")) location = (Location) config.get("spawn");
+			if (config.contains("spawn"))
+				location = (Location) config.get("spawn");
 		});
 		spawnJoin = getConfig(ConfigType.SETTINGS).getBoolean("join_settings.spawn_join", false);
 	}
@@ -48,14 +49,13 @@ public class LobbySpawn extends Module {
 	public void onPlayerJoin(PlayerJoinEvent event) {
 		Player player = event.getPlayer();
 		if (!player.hasPlayedBefore()) {
-			Bukkit.getScheduler().runTaskLater(getPlugin(), new Runnable() {
-				@Override
-				public void run() {
-					if (spawnJoin && location != null) player.teleport(location);
-				}
+			FoliaScheduler.runLaterAtEntity(player, getPlugin(), () -> {
+				if (spawnJoin && location != null)
+					player.teleport(location);
 			}, 2L);
 		} else {
-			if (spawnJoin && location != null) player.teleport(location);
+			if (spawnJoin && location != null)
+				player.teleport(location);
 		}
 
 	}
@@ -63,6 +63,7 @@ public class LobbySpawn extends Module {
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onPlayerRespawn(PlayerRespawnEvent event) {
 		Player player = event.getPlayer();
-		if (location != null && !inDisabledWorld(player.getLocation())) event.setRespawnLocation(location);
+		if (location != null && !inDisabledWorld(player.getLocation()))
+			event.setRespawnLocation(location);
 	}
 }

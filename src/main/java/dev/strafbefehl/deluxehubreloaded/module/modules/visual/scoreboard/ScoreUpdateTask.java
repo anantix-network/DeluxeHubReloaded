@@ -1,5 +1,9 @@
 package dev.strafbefehl.deluxehubreloaded.module.modules.visual.scoreboard;
 
+import dev.strafbefehl.deluxehubreloaded.utility.FoliaScheduler;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -16,9 +20,15 @@ public class ScoreUpdateTask implements Runnable {
 	public void run() {
 		List<UUID> toRemove = new ArrayList<>();
 		scoreboardManager.getPlayers().forEach(uuid -> {
-			if (scoreboardManager.updateScoreboard(uuid) == null) toRemove.add(uuid);
+			Player player = Bukkit.getPlayer(uuid);
+			if (player == null) {
+				toRemove.add(uuid);
+				return;
+			}
+			FoliaScheduler.runAtEntity(player, scoreboardManager.getPlugin(),
+					() -> scoreboardManager.updateScoreboard(uuid));
 		});
-		scoreboardManager.getPlayers().removeAll(toRemove);
+		toRemove.forEach(scoreboardManager::removeScoreboard);
 	}
 
 }

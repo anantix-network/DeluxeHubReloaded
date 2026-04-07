@@ -6,8 +6,8 @@ import cl.bgmp.minecraft.util.commands.exceptions.CommandException;
 import dev.strafbefehl.deluxehubreloaded.DeluxeHubPlugin;
 import dev.strafbefehl.deluxehubreloaded.module.ModuleType;
 import dev.strafbefehl.deluxehubreloaded.module.modules.world.LobbySpawn;
+import dev.strafbefehl.deluxehubreloaded.utility.FoliaScheduler;
 import dev.strafbefehl.deluxehubreloaded.utility.TextUtil;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -20,10 +20,7 @@ public class LobbyCommand {
 		this.plugin = plugin;
 	}
 
-	@Command(
-			aliases = {"lobby"},
-			desc = "Teleport to the lobby (if set)"
-	)
+	@Command(aliases = { "lobby" }, desc = "Teleport to the lobby (if set)")
 	public void lobby(final CommandContext args, final CommandSender sender) throws CommandException {
 
 		if (!(sender instanceof Player)) {
@@ -37,7 +34,7 @@ public class LobbyCommand {
 			return;
 		}
 
-		Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> ((Player) sender).teleport(location), 3L);
+		FoliaScheduler.runLaterAtEntity((Player) sender, plugin, () -> ((Player) sender).teleport(location), 3L);
 
 	}
 

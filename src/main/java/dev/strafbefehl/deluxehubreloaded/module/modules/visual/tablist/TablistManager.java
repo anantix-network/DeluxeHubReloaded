@@ -4,6 +4,7 @@ import dev.strafbefehl.deluxehubreloaded.DeluxeHubPlugin;
 import dev.strafbefehl.deluxehubreloaded.config.ConfigType;
 import dev.strafbefehl.deluxehubreloaded.module.Module;
 import dev.strafbefehl.deluxehubreloaded.module.ModuleType;
+import dev.strafbefehl.deluxehubreloaded.utility.FoliaScheduler;
 import dev.strafbefehl.deluxehubreloaded.utility.PlaceholderUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -13,15 +14,16 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class TablistManager extends Module {
 
-	private List<UUID> players;
-	private int tablistTask;
+	private Set<UUID> players;
+	private FoliaScheduler.TaskHandle tablistTask;
 
 	private String header, footer;
 
@@ -31,7 +33,7 @@ public class TablistManager extends Module {
 
 	@Override
 	public void onEnable() {
-		players = new ArrayList<>();
+		players = ConcurrentHashMap.newKeySet();
 
 		FileConfiguration config = getConfig(ConfigType.SETTINGS);
 
@@ -39,16 +41,22 @@ public class TablistManager extends Module {
 		footer = config.getStringList("tablist.footer").stream().collect(Collectors.joining("\n"));
 
 		if (config.getBoolean("tablist.refresh.enabled")) {
-			tablistTask = Bukkit.getScheduler().scheduleSyncRepeatingTask(getPlugin(), new TablistUpdateTask(this), 0L, config.getLong("tablist.refresh.rate"));
+			tablistTask = FoliaScheduler.runTimer(getPlugin(), new TablistUpdateTask(this), 0L,
+					config.getLong("tablist.refresh.rate"));
 		}
 
-		getPlugin().getServer().getScheduler().scheduleSyncDelayedTask(getPlugin(), () ->
-				Bukkit.getOnlinePlayers().stream().filter(player -> !inDisabledWorld(player.getLocation())).forEach(this::createTablist), 20L);
+		FoliaScheduler
+				.runLater(getPlugin(),
+						() -> Bukkit.getOnlinePlayers().stream()
+								.filter(player -> !inDisabledWorld(player.getLocation())).forEach(this::createTablist),
+						20L);
 	}
 
 	@Override
 	public void onDisable() {
-		Bukkit.getScheduler().cancelTask(tablistTask);
+		if (tablistTask != null) {
+			tablistTask.cancel();
+		}
 		Bukkit.getOnlinePlayers().forEach(this::removeTablist);
 	}
 
@@ -59,30 +67,42 @@ public class TablistManager extends Module {
 	}
 
 	public boolean updateTablist(UUID uuid) {
-		if (!players.contains(uuid)) return false;
+		if (!players.contains(uuid))
+			return false;
 
 		Player player = Bukkit.getPlayer(uuid);
-		if (player == null) return false;
+		if (player == null)
+			return false;
 
-		TablistHelper.sendTabList(player, PlaceholderUtil.setPlaceholders(header, player), PlaceholderUtil.setPlaceholders(footer, player));
+		TablistHelper.sendTabList(player, PlaceholderUtil.setPlaceholders(header, player),
+				PlaceholderUtil.setPlaceholders(footer, player));
 		return true;
 	}
 
 	public void removeTablist(Player player) {
-		if (players.contains(player.getUniqueId())) {
-			players.remove(player.getUniqueId());
+		removeTablist(player.getUniqueId());
+	}
+
+	public void removeTablist(UUID uuid) {
+		if (players.contains(uuid)) {
+			players.remove(uuid);
+			Player player = Bukkit.getPlayer(uuid);
+			if (player == null) {
+				return;
+			}
 			TablistHelper.sendTabList(player, null, null);
 		}
 	}
 
-	public List<UUID> getPlayers() {
+	public Collection<UUID> getPlayers() {
 		return players;
 	}
 
 	@EventHandler
 	public void onPlayerJoin(PlayerJoinEvent event) {
 		Player player = event.getPlayer();
-		if (!inDisabledWorld(player.getLocation())) createTablist(player);
+		if (!inDisabledWorld(player.getLocation()))
+			createTablist(player);
 	}
 
 	@EventHandler
@@ -93,10 +113,13 @@ public class TablistManager extends Module {
 	@EventHandler
 	public void onWorldChange(PlayerTeleportEvent event) {
 		Player player = event.getPlayer();
-		if (event.getFrom().getWorld().getName().equals(event.getTo().getWorld().getName())) return;
+		if (event.getFrom().getWorld().getName().equals(event.getTo().getWorld().getName()))
+			return;
 
-		if (inDisabledWorld(event.getTo().getWorld()) && players.contains(player.getUniqueId())) removeTablist(player);
-		else createTablist(player);
+		if (inDisabledWorld(event.getTo().getWorld()) && players.contains(player.getUniqueId()))
+			removeTablist(player);
+		else
+			createTablist(player);
 	}
 
 }

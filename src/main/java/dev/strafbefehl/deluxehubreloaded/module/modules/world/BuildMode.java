@@ -3,6 +3,7 @@ package dev.strafbefehl.deluxehubreloaded.module.modules.world;
 import dev.strafbefehl.deluxehubreloaded.DeluxeHubPlugin;
 import dev.strafbefehl.deluxehubreloaded.config.ConfigType;
 import dev.strafbefehl.deluxehubreloaded.config.Messages;
+import dev.strafbefehl.deluxehubreloaded.utility.FoliaScheduler;
 import dev.strafbefehl.deluxehubreloaded.utility.TextUtil;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.ComponentBuilder;
@@ -14,19 +15,18 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BuildMode implements Listener {
 	private static BuildMode _instance;
 	private final DeluxeHubPlugin _plugin;
-	private final ArrayList<UUID> _players = new ArrayList<>();
-	private final HashMap<UUID, ItemStack[]> _inventories = new HashMap<>();
+	private final Set<UUID> _players = ConcurrentHashMap.newKeySet();
+	private final Map<UUID, ItemStack[]> _inventories = new ConcurrentHashMap<>();
 	private final List<String> _worlds;
 	private boolean _actionbar_enabled = true;
 	private boolean _invertedWorlds = false;
-
 
 	public BuildMode() {
 		_instance = this;
@@ -48,30 +48,37 @@ public class BuildMode implements Listener {
 	}
 
 	public void runScheduler() {
-		new BukkitRunnable() {
-			@Override
-			public void run() {
-				if (_plugin.getServer().getOnlinePlayers().isEmpty()) return;
-				for (Player p : _plugin.getServer().getOnlinePlayers()) {
+		FoliaScheduler.runTimer(_plugin, () -> {
+			if (_plugin.getServer().getOnlinePlayers().isEmpty())
+				return;
+			for (Player p : _plugin.getServer().getOnlinePlayers()) {
+				FoliaScheduler.runAtEntity(p, _plugin, () -> {
 					if (_players.contains(p.getUniqueId())) {
 						if (!isInPermittedWorld(Objects.requireNonNull(p.getLocation().getWorld()).getName())) {
 							p.getInventory().clear();
 							removePlayer(p.getUniqueId());
-							continue;
+							return;
 						}
-						if (p.getGameMode() != GameMode.CREATIVE) p.setGameMode(GameMode.CREATIVE);
+						if (p.getGameMode() != GameMode.CREATIVE)
+							p.setGameMode(GameMode.CREATIVE);
 						if (_actionbar_enabled)
-							p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new ComponentBuilder().appendLegacy(TextUtil.color(String.valueOf(Messages.BUILD_MODE_ENABLED_ACTIONBAR))).create());
+							p.spigot().sendMessage(ChatMessageType.ACTION_BAR,
+									new ComponentBuilder()
+											.appendLegacy(
+													TextUtil.color(
+															String.valueOf(Messages.BUILD_MODE_ENABLED_ACTIONBAR)))
+											.create());
 					}
-				}
+				});
 			}
-		}.runTaskTimer(_plugin, 5L, 5L);
+		}, 5L, 5L);
 	}
 
 	@EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
 	public void PlayerQuit(PlayerQuitEvent event) {
 		final UUID uuid = event.getPlayer().getUniqueId();
-		if (isPresent(uuid)) removePlayer(uuid);
+		if (isPresent(uuid))
+			removePlayer(uuid);
 	}
 
 	public void addPlayer(Player player) {
@@ -84,7 +91,8 @@ public class BuildMode implements Listener {
 
 	public void removePlayer(UUID uuid) {
 		Player player = _plugin.getServer().getPlayer(uuid);
-		if (player == null) return;
+		if (player == null)
+			return;
 		_players.remove(uuid);
 		player.getInventory().clear();
 		player.setGameMode(GameMode.SURVIVAL);
@@ -102,4 +110,3 @@ public class BuildMode implements Listener {
 		return _invertedWorlds == _worlds.contains(world);
 	}
 }
-
