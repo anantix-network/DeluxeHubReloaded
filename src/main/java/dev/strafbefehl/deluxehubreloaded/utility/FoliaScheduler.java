@@ -52,9 +52,12 @@ public final class FoliaScheduler {
             return new TaskHandle(Bukkit.getScheduler().runTaskTimer(plugin, runnable, initialDelayTicks, periodTicks));
         }
 
+        long safeInitialDelay = normalizeFixedRateInitialDelay(initialDelayTicks);
+        long safePeriod = normalizeFixedRatePeriod(periodTicks);
+
         Object globalScheduler = invokeStatic(Bukkit.class, "getGlobalRegionScheduler");
         Object scheduled = invoke(globalScheduler, "runAtFixedRate", plugin,
-                (Consumer<Object>) ignored -> runnable.run(), initialDelayTicks, periodTicks);
+                (Consumer<Object>) ignored -> runnable.run(), safeInitialDelay, safePeriod);
         return new TaskHandle(scheduled);
     }
 
@@ -127,17 +130,20 @@ public final class FoliaScheduler {
             return new TaskHandle(Bukkit.getScheduler().runTaskTimer(plugin, runnable, initialDelayTicks, periodTicks));
         }
 
+        long safeInitialDelay = normalizeFixedRateInitialDelay(initialDelayTicks);
+        long safePeriod = normalizeFixedRatePeriod(periodTicks);
+
         Object entityScheduler = invoke(entity, "getScheduler");
         Object scheduled = invoke(entityScheduler, "runAtFixedRate", plugin,
-                (Consumer<Object>) ignored -> runnable.run(), null, initialDelayTicks, periodTicks);
+                (Consumer<Object>) ignored -> runnable.run(), null, safeInitialDelay, safePeriod);
         return new TaskHandle(scheduled);
     }
 
     public static void cancelTasks(Plugin plugin) {
         Objects.requireNonNull(plugin, "plugin");
 
-        Bukkit.getScheduler().cancelTasks(plugin);
         if (!FOLIA) {
+            Bukkit.getScheduler().cancelTasks(plugin);
             return;
         }
 
@@ -181,6 +187,14 @@ public final class FoliaScheduler {
 
     private static long ticksToMillis(long ticks) {
         return Math.max(1L, ticks) * 50L;
+    }
+
+    private static long normalizeFixedRateInitialDelay(long ticks) {
+        return Math.max(1L, ticks);
+    }
+
+    private static long normalizeFixedRatePeriod(long ticks) {
+        return Math.max(1L, ticks);
     }
 
     private static boolean classExists(String className) {
