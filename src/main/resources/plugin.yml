@@ -7,6 +7,7 @@ api-version: 1.13
 main: dev.strafbefehl.deluxehubreloaded.DeluxeHubPlugin
 loadbefore: [Essentials]
 softdepend: [PlaceholderAPI, HeadDatabase, Multiverse-Core]
+folia-supported: true
 permissions:
   deluxehub.*:
     description: Gives access to all DeluxeHub permissions
