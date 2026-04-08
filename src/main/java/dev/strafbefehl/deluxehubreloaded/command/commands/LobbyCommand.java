@@ -34,7 +34,8 @@ public class LobbyCommand {
 			return;
 		}
 
-		FoliaScheduler.runLaterAtEntity((Player) sender, plugin, () -> ((Player) sender).teleport(location), 3L);
+		FoliaScheduler.runLaterAtEntity((Player) sender, plugin,
+				() -> FoliaScheduler.teleport((Player) sender, location), 3L);
 
 	}
 

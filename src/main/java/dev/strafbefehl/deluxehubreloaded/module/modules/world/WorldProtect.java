@@ -415,17 +415,47 @@ public class WorldProtect extends Module {
                 break;
             case VOID: {
                 if (voidDeath) {
-                    player.setFallDistance(0.0F);
-                    Location location = ((LobbySpawn) getPlugin().getModuleManager().getModule(ModuleType.LOBBY))
-                            .getLocation();
-                    if (location == null)
-                        return;
-                    FoliaScheduler.runLaterAtEntity(player, getPlugin(), () -> player.teleport(location), 3L);
                     event.setCancelled(true);
+                    player.setFallDistance(0.0F);
+                    Location location = getRespawnLocation(player);
+                    FoliaScheduler.runAtEntity(player, getPlugin(), () -> FoliaScheduler.teleport(player, location));
                 }
                 break;
             }
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPlayerMove(PlayerMoveEvent event) {
+        if (!voidDeath)
+            return;
+
+        Player player = event.getPlayer();
+        if (inDisabledWorld(player.getLocation()))
+            return;
+
+        Location to = event.getTo();
+        if (to == null)
+            return;
+
+        // Safety net for servers where VOID damage does not trigger reliably.
+        if (to.getY() > player.getWorld().getMinHeight() - 4)
+            return;
+
+        player.setFallDistance(0.0F);
+        Location location = getRespawnLocation(player);
+        FoliaScheduler.runAtEntity(player, getPlugin(), () -> FoliaScheduler.teleport(player, location));
+    }
+
+    private Location getRespawnLocation(Player player) {
+        LobbySpawn lobbySpawn = (LobbySpawn) getPlugin().getModuleManager().getModule(ModuleType.LOBBY);
+        if (lobbySpawn != null) {
+            Location location = lobbySpawn.getLocation();
+            if (location != null && location.getWorld() != null)
+                return location;
+        }
+
+        return player.getWorld().getSpawnLocation();
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

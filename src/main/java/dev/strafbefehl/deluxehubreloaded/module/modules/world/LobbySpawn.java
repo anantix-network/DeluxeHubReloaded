@@ -51,11 +51,11 @@ public class LobbySpawn extends Module {
 		if (!player.hasPlayedBefore()) {
 			FoliaScheduler.runLaterAtEntity(player, getPlugin(), () -> {
 				if (spawnJoin && location != null)
-					player.teleport(location);
+					FoliaScheduler.teleport(player, location);
 			}, 2L);
 		} else {
 			if (spawnJoin && location != null)
-				player.teleport(location);
+				FoliaScheduler.teleport(player, location);
 		}
 
 	}

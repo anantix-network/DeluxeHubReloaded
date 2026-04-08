@@ -1,11 +1,13 @@
 package dev.strafbefehl.deluxehubreloaded.utility;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.lang.reflect.Method;
+import java.util.concurrent.CompletableFuture;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -137,6 +139,24 @@ public final class FoliaScheduler {
         Object scheduled = invoke(entityScheduler, "runAtFixedRate", plugin,
                 (Consumer<Object>) ignored -> runnable.run(), null, safeInitialDelay, safePeriod);
         return new TaskHandle(scheduled);
+    }
+
+    public static CompletableFuture<Boolean> teleport(Entity entity, Location location) {
+        Objects.requireNonNull(entity, "entity");
+        Objects.requireNonNull(location, "location");
+
+        if (!FOLIA) {
+            return CompletableFuture.completedFuture(entity.teleport(location));
+        }
+
+        Object result = invoke(entity, "teleportAsync", location);
+        if (result instanceof CompletableFuture) {
+            @SuppressWarnings("unchecked")
+            CompletableFuture<Boolean> future = (CompletableFuture<Boolean>) result;
+            return future;
+        }
+
+        return CompletableFuture.completedFuture(false);
     }
 
     public static void cancelTasks(Plugin plugin) {
